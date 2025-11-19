@@ -12,7 +12,7 @@ com\user\loginapp\repository\ProductRepository.class
 com\user\loginapp\service\UserService.class
 com\user\loginapp\dto\OrderItemRequest.class
 com\user\loginapp\dto\AuthResponse.class
-com\user\loginapp\LoginAppApplication.class
 com\user\loginapp\repository\UserRepository.class
 com\user\loginapp\controller\ProductController.class
 com\user\loginapp\dto\ProductDTO.class
+com\user\loginapp\ShauryaRetailStoreAppApplication.class
