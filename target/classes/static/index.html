@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LoginWebApp — Home</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="brand">Shaurya Wholesale & Retail Store</div>
+      <nav class="nav">
+        <a href="#home" data-route>Home</a>
+        <a href="#products" data-route>Products</a>
+        <a href="#cart" data-route id="navCart">Cart (<span id="cartCount">0</span>)</a>
+        <a href="#register" data-route>Register</a>
+        <a href="#login" data-route>Login</a>
+        <a href="#profile" data-route id="navProfile" style="display:none">Profile</a>
+        <a href="#about" data-route>About</a>
+      </nav>
+      <div class="user-area" id="userArea">
+        <span id="userGreeting"></span>
+        <button id="logoutBtn" style="display:none">Logout</button>
+      </div>
+    </header>
+
+    <main class="container">
+      <section id="home" class="page">
+        <h1>Welcome to Shaurya Wholesale & Retail Store</h1>
+        <p class="muted">Quality products at wholesale and retail prices — explore our catalog, add items to cart, and checkout.</p>
+        <div class="card-row">
+          <div class="card">
+            <h3>Wide Selection</h3>
+            <p class="muted">Groceries, home supplies, electronics and more — curated for value buyers.</p>
+          </div>
+          <div class="card">
+            <h3>Bulk & Retail</h3>
+            <p class="muted">Flexible quantities for wholesalers and individual buyers.</p>
+          </div>
+          <div class="card">
+            <h3>Fast Checkout</h3>
+            <p class="muted">Simple ordering flow with demo checkout.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="products" class="page" style="display:none">
+        <h2>Products</h2>
+        <div id="productsGrid" class="card-row"></div>
+      </section>
+
+      <section id="cart" class="page" style="display:none">
+        <h2>Your Cart</h2>
+        <div id="cartContent"></div>
+        <div id="cartActions" style="margin-top:16px"></div>
+      </section>
+
+      <section id="register" class="page" style="display:none">
+        <h2>Create an account</h2>
+        <div class="form">
+          <label>Full name</label>
+          <input id="regFullName" placeholder="Full name" />
+          <label>Username</label>
+          <input id="regUsername" placeholder="Username" />
+          <label>Password</label>
+          <input id="regPassword" type="password" placeholder="Password" />
+          <button id="regBtn">Register</button>
+          <div id="regResult" class="result"></div>
+        </div>
+      </section>
+
+      <section id="login" class="page" style="display:none">
+        <h2>Login</h2>
+        <div class="form">
+          <label>Username</label>
+          <input id="loginUsername" placeholder="Username" />
+          <label>Password</label>
+          <input id="loginPassword" type="password" placeholder="Password" />
+          <button id="loginBtn">Login</button>
+          <div id="loginResult" class="result"></div>
+        </div>
+      </section>
+
+      <section id="profile" class="page" style="display:none">
+        <h2>Your profile</h2>
+        <div id="profileContent">
+          <p>No user signed in.</p>
+        </div>
+      </section>
+
+      <section id="about" class="page" style="display:none">
+        <h2>About</h2>
+        <p>This is a simple demo application. For production use, add strong auth, HTTPS, validation, and hardened CORS.</p>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <small>Built with Spring Boot + Oracle (demo)</small>
+    </footer>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
