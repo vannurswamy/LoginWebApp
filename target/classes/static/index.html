@@ -8,7 +8,10 @@
   </head>
   <body>
     <header class="site-header">
-      <div class="brand">Shaurya Wholesale & Retail Store</div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <img src="/logo.svg" alt="Shaurya logo" style="height:56px;width:auto;border-radius:8px;object-fit:contain;box-shadow:0 6px 18px rgba(16,24,40,0.04)" onerror="this.style.display='none'" />
+        <div class="brand">Shaurya Wholesale & Retail Store</div>
+      </div>
       <nav class="nav">
         <a href="#home" data-route>Home</a>
         <a href="#products" data-route>Products</a>
@@ -27,7 +30,9 @@
 
     <main class="container">
       <section id="home" class="page">
-        <h1>Welcome to Shaurya Wholesale & Retail Store</h1>
+        <div class="moving-banner">
+    Welcome to Shaurya Wholesale & Retail Store
+</div>
         <p class="muted">Quality products at wholesale and retail prices — explore our catalog, add items to cart, and checkout.</p>
         <div class="card-row">
           <div class="card">
@@ -54,6 +59,11 @@
         <h2>Your Cart</h2>
         <div id="cartContent"></div>
         <div id="cartActions" style="margin-top:16px"></div>
+      </section>
+
+      <section id="checkout" class="page" style="display:none">
+        <h2>Checkout</h2>
+        <div id="checkoutGrid" class="checkout-grid"></div>
       </section>
 
       <section id="register" class="page" style="display:none">

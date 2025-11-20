@@ -3,6 +3,13 @@ const base = (location.protocol === 'file:' || location.origin === 'null') ? 'ht
 
 // products are loaded from the backend
 let products = [];
+// simple SVG placeholder (lightweight, avoids adding image files)
+const placeholderImage = 'data:image/svg+xml;utf8,' + encodeURIComponent(`
+  <svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
+    <rect width="100%" height="100%" fill="#f3f4f6"/>
+    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9ca3af" font-family="Arial,Helvetica,sans-serif" font-size="24">Image not available</text>
+  </svg>
+`);
 
 async function fetchProducts() {
   try {
@@ -49,7 +56,7 @@ function renderProducts() {
   products.forEach(p=>{
     const card = document.createElement('div'); card.className = 'product-card';
     card.innerHTML = `
-      <img src="${p.image}" alt="${p.title}" />
+      <img src="${p.image || placeholderImage}" alt="${p.title}" />
       <div class="product-title">${p.title}</div>
       <div class="product-price">${formatPrice(p.price)}</div>
       <div class="product-actions">
@@ -90,32 +97,185 @@ function renderCart() {
   updateCartCount();
 }
 
-function renderCheckout() {
-  const actions = document.getElementById('cartActions');
-  const content = document.getElementById('cartContent');
+async function renderCheckout() {
+  const grid = document.getElementById('checkoutGrid');
   const cart = getCart();
-  if(!content || !actions) return;
-  if(cart.length===0) { content.innerHTML = '<p>Your cart is empty.</p>'; actions.innerHTML=''; return; }
-  // simple checkout form (demo)
-  content.innerHTML = `<div class="page"><h3>Checkout</h3><div class="form"><label>Full name</label><input id="chkName" placeholder="Full name" /><label>Address</label><input id="chkAddress" placeholder="Delivery address" /><label>Phone</label><input id="chkPhone" placeholder="Phone" /></div></div>`;
-  actions.innerHTML = `<div style="margin-top:12px"><button id="completeOrder">Place Order</button></div>`;
-  document.getElementById('completeOrder').addEventListener('click', async ()=>{
+  try {
+    // ensure we have product data to render item details
+    if (products.length === 0) {
+      await fetchProducts();
+    }
+    console.log('renderCheckout called', { cartLength: cart.length, productsLength: products.length });
+    if(!grid) { console.warn('checkoutGrid element not found'); return; }
+    if(cart.length===0) { grid.innerHTML = '<p>Your cart is empty.</p>'; return; }
+
+  // build left column: address + items
+  let itemsHtml = '';
+  let subtotal = 0;
+  cart.forEach(i=>{
+    const p = products.find(x=>x.id===i.id);
+    if(!p) return;
+    subtotal += p.price * i.qty;
+    itemsHtml += `<div class="checkout-item"><img src="${p.image || placeholderImage}" alt="${p.title}" /><div><div style="font-weight:700">${p.title}</div><div class="muted">Qty: ${i.qty} · ${formatPrice(p.price)}</div></div><div style="margin-left:auto">${formatPrice(p.price * i.qty)}</div></div>`;
+  });
+
+  grid.innerHTML = `
+    <div class="checkout-left">
+      <div class="card">
+        <h3>Delivery details</h3>
+        <div class="form"><label>Full name</label><input id="chkName" placeholder="Full name" />
+        <label>Address</label><input id="chkAddress" placeholder="Delivery address" />
+        <label>Phone</label><input id="chkPhone" placeholder="Phone" /></div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <h3>Order items</h3>
+        ${itemsHtml}
+      </div>
+    </div>
+    <aside class="checkout-right card">
+      <h3>Payment</h3>
+      <div><strong>Subtotal</strong><div class="muted">${formatPrice(subtotal)}</div></div>
+      <div style="margin-top:12px">
+        <label><input type="radio" name="pay" value="card" checked /> Credit / Debit Card</label><br/>
+        <label><input type="radio" name="pay" value="upi" /> UPI</label><br/>
+        <label><input type="radio" name="pay" value="phonepe" /> PhonePe (UPI)</label><br/>
+        <label><input type="radio" name="pay" value="netbanking" /> Netbanking</label><br/>
+        <label><input type="radio" name="pay" value="cod" /> Cash on Delivery</label>
+      </div>
+      <div id="paymentForm" style="margin-top:12px"></div>
+      <div style="margin-top:14px;display:flex;gap:8px;justify-content:space-between;align-items:center"><button id="payNow">Pay Now</button><button class="secondary" id="editCart">Edit Cart</button></div>
+      <div id="paymentResult" class="result" style="margin-top:12px"></div>
+    </aside>
+  `;
+
+  // ensure the grid is visible (in case CSS/display toggles hide it)
+  grid.style.display = '';
+
+  // payment form switching
+  grid.querySelectorAll('input[name="pay"]').forEach(r=> r.addEventListener('change', renderPaymentForm));
+  document.getElementById('editCart').addEventListener('click', ()=>{ location.hash='cart'; });
+  renderPaymentForm();
+
+  async function onPay() {
     const name = document.getElementById('chkName').value.trim();
     const address = document.getElementById('chkAddress').value.trim();
     const phone = document.getElementById('chkPhone').value.trim();
+    const method = (document.querySelector('input[name="pay"]:checked') || {}).value || 'card';
     if(!name || !address) { alert('Please enter name and address'); return; }
-    // prepare order payload
-    const payload = { username: (getCurrentUser() ? getCurrentUser().username : null), fullName: name, address, phone, items: cart.map(i=>({ productId: i.id, qty: i.qty })) };
+    // For UPI (PhonePe) we'll obtain a UPI deep-link from the server and open it.
+    const payload = { username: (getCurrentUser() ? getCurrentUser().username : null), fullName: name, address, phone, paymentMethod: method, items: cart.map(i=>({ productId: i.id, qty: i.qty })) };
     try {
-      const resp = await fetch(base + '/api/orders', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
-      if (!resp.ok) { const txt = await resp.text(); alert('Order failed: ' + txt); return; }
-      const data = await resp.json();
-      clearCart(); alert('Order placed. Order id: ' + (data.id || 'n/a'));
-      location.hash='home';
+      if (method === 'upi') {
+        const amount = (subtotal/100).toFixed(2); // frontend uses cents; adjust if your backend sends rupees instead
+        const orderId = 'upi-' + Date.now();
+        const resp = await fetch(base + '/api/payments/upi/link', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ amount, orderId, name }) });
+        const data = await resp.json();
+        if (data.upiLink) {
+          // Open the deep-link. On mobile this should offer PhonePe among UPI apps.
+          document.getElementById('paymentResult').textContent = 'Opening UPI app... complete payment and then click Confirm Payment below.';
+          window.location.href = data.upiLink;
+          // Show a confirm button so user can tell the app they completed the payment.
+          const confirmBox = document.createElement('div');
+          confirmBox.style.marginTop = '12px';
+          confirmBox.innerHTML = `<button id="confirmUpi" style="margin-right:8px">I have paid (Confirm)</button> <button class="secondary" id="cancelUpi">Cancel</button>`;
+          document.getElementById('paymentResult').appendChild(confirmBox);
+          document.getElementById('confirmUpi').addEventListener('click', async ()=>{
+            document.getElementById('paymentResult').textContent = 'Verifying payment...';
+            const v = await fetch(base + '/api/payments/upi/verify', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ orderId }) });
+            const vr = await v.json();
+            if (vr.status === 'SUCCESS') {
+              clearCart();
+              document.getElementById('paymentResult').textContent = 'Payment confirmed. Order id: ' + (vr.orderId || orderId);
+              setTimeout(()=>{ location.hash='home'; }, 1400);
+            } else {
+              document.getElementById('paymentResult').textContent = 'Payment not confirmed: ' + (vr.message || 'unknown');
+            }
+          });
+          document.getElementById('cancelUpi').addEventListener('click', ()=>{ document.getElementById('paymentResult').textContent = 'Payment cancelled.'; });
+          return;
+        } else {
+          document.getElementById('paymentResult').textContent = 'Failed to create UPI link';
+          return;
+        }
+      }
+
+      if (method === 'phonepe') {
+        const amount = (subtotal/100).toFixed(2);
+        const orderId = 'pp-' + Date.now();
+        const resp = await fetch(base + '/api/payments/phonepe/create-order', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ amount, orderId, name }) });
+        const data = await resp.json();
+        const paymentUrl = data.paymentUrl || data.paymentUrl;
+        if (paymentUrl) {
+          document.getElementById('paymentResult').textContent = 'Opening PhonePe... complete payment and then click Confirm Payment below.';
+          window.location.href = paymentUrl;
+          const confirmBox = document.createElement('div');
+          confirmBox.style.marginTop = '12px';
+          confirmBox.innerHTML = `<button id="confirmPhonePe" style="margin-right:8px">I have paid (Confirm)</button> <button class="secondary" id="cancelPhonePe">Cancel</button>`;
+          document.getElementById('paymentResult').appendChild(confirmBox);
+          document.getElementById('confirmPhonePe').addEventListener('click', async ()=>{
+            document.getElementById('paymentResult').textContent = 'Verifying payment with server...';
+            const v = await fetch(base + '/api/payments/phonepe/verify', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ orderId: data.orderId || orderId }) });
+            const vr = await v.json();
+            if (vr.status === 'SUCCESS') {
+              clearCart();
+              document.getElementById('paymentResult').textContent = 'Payment confirmed. Order id: ' + (vr.orderId || orderId);
+              setTimeout(()=>{ location.hash='home'; }, 1400);
+            } else {
+              document.getElementById('paymentResult').textContent = 'Payment not confirmed: ' + (vr.message || 'unknown');
+            }
+          });
+          document.getElementById('cancelPhonePe').addEventListener('click', ()=>{ document.getElementById('paymentResult').textContent = 'Payment cancelled.'; });
+          return;
+        } else {
+          document.getElementById('paymentResult').textContent = 'Failed to create PhonePe payment URL';
+          return;
+        }
+      }
+
+      // Non-UPI flows: send order to backend (server should integrate real gateway)
+      const resp2 = await fetch(base + '/api/orders', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
+      if (!resp2.ok) { const txt = await resp2.text(); document.getElementById('paymentResult').textContent = 'Order failed: ' + txt; return; }
+      const data2 = await resp2.json();
+      clearCart();
+      document.getElementById('paymentResult').textContent = 'Payment & order successful. Order id: ' + (data2.id || 'n/a');
+      grid.innerHTML = `<div class="card"><h3>Thank you</h3><p>Your order has been placed successfully.</p><p><strong>Order id:</strong> ${data2.id || 'n/a'}</p><p><button id="backHome">Continue Shopping</button></p></div>`;
+      document.getElementById('backHome').addEventListener('click', ()=>{ location.hash='home'; });
     } catch (err) {
-      alert('Order error: ' + err);
+      document.getElementById('paymentResult').textContent = 'Order error: ' + err;
     }
+  }
+
+  document.getElementById('payNow').addEventListener('click', onPay);
+  // defensive: catch errors that might occur in onPay and show them
+  window.addEventListener('error', (ev) => {
+    const pr = document.getElementById('paymentResult');
+    if (pr) pr.textContent = 'An error occurred: ' + ev.message;
+    console.error('Unhandled error', ev.error || ev.message);
   });
+
+  function renderPaymentForm() {
+    const sel = (document.querySelector('input[name="pay"]:checked') || {}).value;
+    const pf = document.getElementById('paymentForm');
+    if (!pf) return;
+    if (sel === 'card') {
+      pf.innerHTML = `<label>Card number</label><input id="cardNumber" placeholder="xxxx-xxxx-xxxx-xxxx" />
+        <label>Name on card</label><input id="cardName" />
+        <label>Expiry / CVV</label><input id="cardExp" placeholder="MM/YY - CVV" />`;
+    } else if (sel === 'upi') {
+      pf.innerHTML = `<label>UPI ID</label><input id="upiId" placeholder="yourid@upi" />
+        <div class="muted" style="margin-top:8px">A simulated UPI flow will be used for this demo.</div>`;
+    } else if (sel === 'phonepe') {
+      pf.innerHTML = `<div class="muted">You will be redirected to PhonePe to complete payment. Use the Confirm button after completing payment on your phone.</div>`;
+    } else if (sel === 'netbanking') {
+      pf.innerHTML = `<label>Bank</label><select id="bankSel"><option>HDFC</option><option>SBI</option><option>ICICI</option></select>`;
+    } else if (sel === 'cod') {
+      pf.innerHTML = `<div class="muted">You will pay at delivery. No upfront payment required.</div>`;
+    }
+  }
+  } catch (e) {
+    console.error('renderCheckout error', e);
+    if (grid) grid.innerHTML = '<div class="card"><p>Error rendering checkout. See console for details.</p></div>';
+  }
 }
 
 function showSection(id) {
@@ -134,6 +294,10 @@ function onHashChange() {
     return;
   }
   showSection(hash);
+  // render page-specific dynamic content
+  if (hash === 'products') renderProducts();
+  if (hash === 'cart') renderCart();
+  if (hash === 'checkout') renderCheckout();
   renderProfileIfNeeded();
 }
 

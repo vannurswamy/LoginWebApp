@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="180" viewBox="0 0 600 180">
+  <defs>
+    <linearGradient id="g1" x1="0" x2="1">
+      <stop offset="0" stop-color="#C2782A" />
+      <stop offset="1" stop-color="#6b3f1a" />
+    </linearGradient>
+    <linearGradient id="g2" x1="0" x2="1">
+      <stop offset="0" stop-color="#f5e6c8" />
+      <stop offset="1" stop-color="#d9b37a" />
+    </linearGradient>
+  </defs>
+
+  <!-- Bowl -->
+  <g transform="translate(28,12)">
+    <path d="M80 90 C130 140, 290 140, 340 90 L320 72 C280 104, 130 104, 80 72 Z" fill="url(#g1)" />
+    <path d="M95 86 C135 118, 285 118, 325 86" stroke="#5a2f12" stroke-width="2" fill="none" opacity="0.8"/>
+    <!-- grains -->
+    <g fill="url(#g2)" stroke="#b47f3a" stroke-width="0.6">
+      <ellipse cx="130" cy="50" rx="8" ry="14" transform="rotate(-25 130 50)" />
+      <ellipse cx="160" cy="38" rx="8" ry="14" transform="rotate(-10 160 38)" />
+      <ellipse cx="200" cy="34" rx="8" ry="14" transform="rotate(6 200 34)" />
+      <ellipse cx="240" cy="40" rx="8" ry="14" transform="rotate(18 240 40)" />
+      <ellipse cx="275" cy="58" rx="8" ry="14" transform="rotate(28 275 58)" />
+    </g>
+    <!-- wreath hints -->
+    <path d="M6 40 C18 18, 48 8, 80 20" stroke="#c99b47" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.95" />
+    <path d="M392 20 C424 8, 454 18, 466 40" stroke="#c99b47" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.95" />
+  </g>
+
+  <!-- Text -->
+  <g transform="translate(0,118)">
+    <text x="300" y="0" font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="40" text-anchor="middle" fill="#4b2f1a">SHAURYA</text>
+    <text x="300" y="28" font-family="Segoe UI, Arial, sans-serif" font-size="14" text-anchor="middle" fill="#6b4a2a">Wholesale & Retail Store</text>
+  </g>
+</svg>

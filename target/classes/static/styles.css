@@ -63,3 +63,27 @@ button:disabled{opacity:.6;cursor:not-allowed}
 .qty-input{width:64px;padding:6px;border-radius:6px;border:1px solid rgba(15,23,42,0.06)}
 .total-row{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:12px;border-top:1px dashed rgba(15,23,42,0.06)}
 
+/* Checkout grid layout */
+.checkout-grid{display:grid;grid-template-columns:1fr 360px;gap:18px;margin-top:18px}
+.checkout-left{display:flex;flex-direction:column;gap:12px}
+.checkout-right{position:sticky;top:20px}
+.checkout-item{display:flex;align-items:center;gap:10px;padding:8px;border-bottom:1px solid rgba(15,23,42,0.04)}
+.checkout-item img{width:72px;height:56px;object-fit:cover;border-radius:6px}
+.moving-banner {
+    font-size: 32px;
+    font-weight: bold;
+    color: violet;
+    white-space: nowrap;
+    animation: moveBanner 10s linear infinite;
+}
+
+@keyframes moveBanner {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+}
+
+@media (max-width:900px){
+  .checkout-grid{grid-template-columns:1fr}
+  .checkout-right{position:relative}
+}
+
